@@ -1,4 +1,3 @@
-<!-- players.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +13,6 @@
     input[type="text"], input[type="number"] { width: 4rem; }
     button { padding: 0.4rem 0.8rem; margin: 0.2rem; border: none; background: #3498db; color: white; border-radius: 4px; cursor: pointer; }
     button:hover { background: #2980b9; }
-    form { margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -42,45 +40,68 @@
   </section>
 
   <script>
-    const STORAGE_PLAYERS = 'football_players';
-    let players = JSON.parse(localStorage.getItem(STORAGE_PLAYERS) || '[]');
-    function savePlayers() { localStorage.setItem(STORAGE_PLAYERS, JSON.stringify(players)); }
+    const API = 'YOUR_SCRIPT_URL_HERE';
+    let players = [];
+
+    async function loadPlayers() {
+      const res = await fetch(`${API}?op=getPlayers`);
+      players = await res.json();
+    }
+    async function savePlayers() {
+      await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ op: 'savePlayers', data: players })
+      });
+    }
+
     function renderPlayers() {
       const tbody = document.querySelector('#player-table tbody');
       tbody.innerHTML = '';
       players.forEach((p,i) => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${p.name}</td><td>${p.atk}</td><td>${p.mid}</td><td>${p.def}</td>
-          <td><button data-i="${i}" class="del-player">❌</button></td>`;
+          <td>${p.name}</td>
+          <td>${p.atk}</td>
+          <td>${p.mid}</td>
+          <td>${p.def}</td>
+          <td><button data-i="${i}" class="del-player">❌</button></td>
+        `;
         tbody.append(row);
       });
     }
-    document.getElementById('add-player-form').addEventListener('submit', e => {
+
+    document.getElementById('add-player-form').addEventListener('submit', async e => {
       e.preventDefault();
       const name = document.getElementById('p-name').value.trim();
-      const atk = +document.getElementById('p-atk').value;
-      const mid = +document.getElementById('p-mid').value;
-      const def = +document.getElementById('p-def').value;
+      const atk  = +document.getElementById('p-atk').value;
+      const mid  = +document.getElementById('p-mid').value;
+      const def  = +document.getElementById('p-def').value;
       if (!name) return;
       players.push({ name, atk, mid, def });
-      savePlayers();
+      await savePlayers();
       renderPlayers();
       e.target.reset();
     });
-    document.querySelector('#player-table').addEventListener('click', e => {
+
+    document.querySelector('#player-table').addEventListener('click', async e => {
       if (e.target.classList.contains('del-player')) {
         const i = +e.target.dataset.i;
         players.splice(i,1);
-        savePlayers();
+        await savePlayers();
         renderPlayers();
       }
     });
+
     document.getElementById('page-select').value = 'players.html';
-    document.getElementById('page-select').addEventListener('change', function() {
+    document.getElementById('page-select').addEventListener('change', function(){
       window.location.href = this.value;
     });
-    renderPlayers();
+
+    // Init
+    (async ()=>{
+      await loadPlayers();
+      renderPlayers();
+    })();
   </script>
 </body>
 </html>

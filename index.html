@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,10 +72,29 @@
   </div>
 
   <script>
-    const STORAGE_PLAYERS = 'football_players';
-    const STORAGE_LOGS    = 'football_logs';
-    let players = JSON.parse(localStorage.getItem(STORAGE_PLAYERS) || '[]');
-    let logs    = JSON.parse(localStorage.getItem(STORAGE_LOGS) || '[]');
+    const API = 'YOUR_SCRIPT_URL_HERE'; // ← replace with your Apps Script Web App URL
+    let players = [], logs = [];
+
+    async function loadPlayers() {
+      const res = await fetch(`${API}?op=getPlayers`);
+      players = await res.json();
+    }
+    async function savePlayers() {
+      await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ op: 'savePlayers', data: players })
+      });
+    }
+    async function loadLogs() {
+      const res = await fetch(`${API}?op=getLogs`);
+      logs = await res.json();
+    }
+    async function saveLogs() {
+      await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ op: 'saveLogs', data: logs })
+      });
+    }
 
     function renderAttendance() {
       const div = document.getElementById('attendance-list');
@@ -99,7 +117,7 @@
       present.forEach(p => {
         const total = p.atk + p.mid + p.def;
         if (sumA <= sumB) { teamA.push(p.name); sumA += total; }
-        else { teamB.push(p.name); sumB += total; }
+        else              { teamB.push(p.name); sumB += total; }
       });
       renderTeams(teamA, teamB, sumA, sumB);
     });
@@ -107,52 +125,57 @@
     function renderTeams(teamA, teamB, sumA, sumB) {
       document.getElementById('teamA-header').textContent = `Team A (Total: ${sumA})`;
       document.getElementById('teamB-header').textContent = `Team B (Total: ${sumB})`;
-      const aUl = document.getElementById('teamA');
-      const bUl = document.getElementById('teamB');
-      aUl.innerHTML = '';
-      bUl.innerHTML = '';
+      const aUl = document.getElementById('teamA'), bUl = document.getElementById('teamB');
+      aUl.innerHTML = ''; bUl.innerHTML = '';
       teamA.forEach(name => aUl.append(createLi(name,'A')));
       teamB.forEach(name => bUl.append(createLi(name,'B')));
     }
-
     function createLi(name, team) {
       const li = document.createElement('li');
       li.textContent = name;
       li.addEventListener('click', () => movePlayer(name, team));
       return li;
     }
-
     function movePlayer(name, from) {
-      const aNames = Array.from(document.querySelectorAll('#teamA li')).map(li => li.textContent);
-      const bNames = Array.from(document.querySelectorAll('#teamB li')).map(li => li.textContent);
-      if (from === 'A') {
+      const aNames = Array.from(document.querySelectorAll('#teamA li')).map(li=>li.textContent);
+      const bNames = Array.from(document.querySelectorAll('#teamB li')).map(li=>li.textContent);
+      if (from==='A') {
         const idx = aNames.indexOf(name);
-        if (idx > -1) { aNames.splice(idx,1); bNames.push(name); }
+        if (idx>-1) { aNames.splice(idx,1); bNames.push(name); }
       } else {
         const idx = bNames.indexOf(name);
-        if (idx > -1) { bNames.splice(idx,1); aNames.push(name); }
+        if (idx>-1) { bNames.splice(idx,1); aNames.push(name); }
       }
-      renderTeams(aNames, bNames, 0, 0);
+      // recalc totals
+      let sumA=0, sumB=0;
+      aNames.forEach(n=>{ const p=players.find(x=>x.name===n); sumA+=p.atk+p.mid+p.def; });
+      bNames.forEach(n=>{ const p=players.find(x=>x.name===n); sumB+=p.atk+p.mid+p.def; });
+      renderTeams(aNames, bNames, sumA, sumB);
     }
 
-    document.getElementById('score-form').addEventListener('submit', e => {
+    document.getElementById('score-form').addEventListener('submit', async e => {
       e.preventDefault();
       const scoreA = +document.getElementById('scoreA').value;
       const scoreB = +document.getElementById('scoreB').value;
-      const teamA  = Array.from(document.querySelectorAll('#teamA li')).map(li => li.textContent);
-      const teamB  = Array.from(document.querySelectorAll('#teamB li')).map(li => li.textContent);
-      logs.push({ date: new Date().toISOString(), teamA, teamB, scoreA, scoreB });
-      localStorage.setItem(STORAGE_LOGS, JSON.stringify(logs));
+      const teamA  = Array.from(document.querySelectorAll('#teamA li')).map(li=>li.textContent);
+      const teamB  = Array.from(document.querySelectorAll('#teamB li')).map(li=>li.textContent);
+      logs.push({ date:new Date().toISOString(), teamA, teamB, scoreA, scoreB });
+      await saveLogs();
       alert('Result logged!');
       e.target.reset();
     });
 
     document.getElementById('page-select').value = 'index.html';
-    document.getElementById('page-select').addEventListener('change', function() {
+    document.getElementById('page-select').addEventListener('change', function(){
       window.location.href = this.value;
     });
 
-    renderAttendance();
+    // Initialize
+    (async ()=>{
+      await loadPlayers();
+      await loadLogs();
+      renderAttendance();
+    })();
   </script>
 </body>
 </html>
