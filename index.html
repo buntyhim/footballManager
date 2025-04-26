@@ -1,0 +1,158 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Saturday Football Team Manager</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 1rem; }
+    nav { margin-bottom: 1rem; }
+    select { padding: 0.4rem; font-size: 1rem; }
+    .main-content { display: flex; gap: 1rem; }
+    .left, .right { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; }
+    .left { flex: 1; }
+    .right { flex: 2; display: flex; flex-direction: column; gap: 1rem; }
+    section h2 { margin-top: 0; }
+    #attendance-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; }
+    #attendance-list label { display: flex; align-items: center; }
+    #attendance-list input { margin-right: 0.5rem; }
+    .team-row { display: flex; gap: 1rem; }
+    .team-container { flex: 1; }
+    ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
+    ul li { padding: 0.4rem; margin-bottom: 0.2rem; background: #ecf0f1; border-radius: 4px; cursor: pointer; }
+    ul li:hover { background: #bdc3c7; }
+    form { display: flex; align-items: center; gap: 0.5rem; }
+    form input[type="number"] { width: 4rem; }
+    button { padding: 0.4rem 0.8rem; border: none; background: #3498db; color: white; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #2980b9; }
+  </style>
+</head>
+<body>
+  <nav>
+    <select id="page-select">
+      <option value="index.html">Team Generator</option>
+      <option value="players.html">Manage Players</option>
+      <option value="results.html">Previous Results</option>
+    </select>
+  </nav>
+
+  <div class="main-content">
+    <div class="left">
+      <section id="attendance">
+        <h2>Mark Attendance</h2>
+        <div id="attendance-list"></div>
+        <button id="generate-teams">Generate Teams</button>
+      </section>
+    </div>
+
+    <div class="right">
+      <section id="teams">
+        <h2>Teams</h2>
+        <div class="team-row">
+          <div class="team-container">
+            <h3 id="teamA-header">Team A (Total: 0)</h3>
+            <ul id="teamA"></ul>
+          </div>
+          <div class="team-container">
+            <h3 id="teamB-header">Team B (Total: 0)</h3>
+            <ul id="teamB"></ul>
+          </div>
+        </div>
+        <p><em>Click a name to move between teams.</em></p>
+      </section>
+
+      <section id="score-logging">
+        <h2>Log Score</h2>
+        <form id="score-form">
+          <label>Team A: <input type="number" id="scoreA" min="0" required></label>
+          <label>Team B: <input type="number" id="scoreB" min="0" required></label>
+          <button type="submit">Save Result</button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_PLAYERS = 'football_players';
+    const STORAGE_LOGS    = 'football_logs';
+    let players = JSON.parse(localStorage.getItem(STORAGE_PLAYERS) || '[]');
+    let logs    = JSON.parse(localStorage.getItem(STORAGE_LOGS) || '[]');
+
+    function renderAttendance() {
+      const div = document.getElementById('attendance-list');
+      div.innerHTML = '';
+      players.forEach((p,i) => {
+        const lbl = document.createElement('label');
+        lbl.innerHTML = `<input type="checkbox" data-i="${i}"> ${p.name}`;
+        div.append(lbl);
+      });
+    }
+
+    document.getElementById('generate-teams').addEventListener('click', () => {
+      const present = [];
+      document.querySelectorAll('#attendance-list input:checked').forEach(cb => {
+        present.push(players[+cb.dataset.i]);
+      });
+      present.sort((a,b) => (b.atk+b.mid+b.def) - (a.atk+a.mid+a.def));
+      const teamA = [], teamB = [];
+      let sumA = 0, sumB = 0;
+      present.forEach(p => {
+        const total = p.atk + p.mid + p.def;
+        if (sumA <= sumB) { teamA.push(p.name); sumA += total; }
+        else { teamB.push(p.name); sumB += total; }
+      });
+      renderTeams(teamA, teamB, sumA, sumB);
+    });
+
+    function renderTeams(teamA, teamB, sumA, sumB) {
+      document.getElementById('teamA-header').textContent = `Team A (Total: ${sumA})`;
+      document.getElementById('teamB-header').textContent = `Team B (Total: ${sumB})`;
+      const aUl = document.getElementById('teamA');
+      const bUl = document.getElementById('teamB');
+      aUl.innerHTML = '';
+      bUl.innerHTML = '';
+      teamA.forEach(name => aUl.append(createLi(name,'A')));
+      teamB.forEach(name => bUl.append(createLi(name,'B')));
+    }
+
+    function createLi(name, team) {
+      const li = document.createElement('li');
+      li.textContent = name;
+      li.addEventListener('click', () => movePlayer(name, team));
+      return li;
+    }
+
+    function movePlayer(name, from) {
+      const aNames = Array.from(document.querySelectorAll('#teamA li')).map(li => li.textContent);
+      const bNames = Array.from(document.querySelectorAll('#teamB li')).map(li => li.textContent);
+      if (from === 'A') {
+        const idx = aNames.indexOf(name);
+        if (idx > -1) { aNames.splice(idx,1); bNames.push(name); }
+      } else {
+        const idx = bNames.indexOf(name);
+        if (idx > -1) { bNames.splice(idx,1); aNames.push(name); }
+      }
+      renderTeams(aNames, bNames, 0, 0);
+    }
+
+    document.getElementById('score-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const scoreA = +document.getElementById('scoreA').value;
+      const scoreB = +document.getElementById('scoreB').value;
+      const teamA  = Array.from(document.querySelectorAll('#teamA li')).map(li => li.textContent);
+      const teamB  = Array.from(document.querySelectorAll('#teamB li')).map(li => li.textContent);
+      logs.push({ date: new Date().toISOString(), teamA, teamB, scoreA, scoreB });
+      localStorage.setItem(STORAGE_LOGS, JSON.stringify(logs));
+      alert('Result logged!');
+      e.target.reset();
+    });
+
+    document.getElementById('page-select').value = 'index.html';
+    document.getElementById('page-select').addEventListener('change', function() {
+      window.location.href = this.value;
+    });
+
+    renderAttendance();
+  </script>
+</body>
+</html>

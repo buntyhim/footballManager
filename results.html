@@ -1,0 +1,51 @@
+
+<!-- results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Previous Results</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 1rem; }
+    nav { margin-bottom: 1rem; }
+    select { padding: 0.4rem; font-size: 1rem; }
+    section { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; }
+    ul { list-style: none; padding: 0; }
+    ul li { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <select id="page-select">
+      <option value="index.html">Team Generator</option>
+      <option value="players.html">Manage Players</option>
+      <option value="results.html">Previous Results</option>
+    </select>
+  </nav>
+
+  <section id="logs">
+    <h2>Previous Results</h2>
+    <ul id="log-list"></ul>
+  </section>
+
+  <script>
+    const STORAGE_LOGS = 'football_logs';
+    let logs = JSON.parse(localStorage.getItem(STORAGE_LOGS) || '[]');
+    function renderLogs() {
+      const ul = document.getElementById('log-list'); ul.innerHTML = '';
+      logs.slice().reverse().forEach(log => {
+        const li = document.createElement('li');
+        const date = new Date(log.date).toLocaleString();
+        li.innerHTML = `<strong>${date}</strong><br>
+          A [${log.teamA.join(', ')}] ${log.scoreA}–${log.scoreB} [${log.teamB.join(', ')}] B`;
+        ul.append(li);
+      });
+    }
+    document.getElementById('page-select').value = 'results.html';
+    document.getElementById('page-select').addEventListener('change', function() {
+      window.location.href = this.value;
+    });
+    renderLogs();
+  </script>
+</body>
+</html>

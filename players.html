@@ -1,0 +1,86 @@
+<!-- players.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Players</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 1rem; }
+    nav { margin-bottom: 1rem; }
+    select { padding: 0.4rem; font-size: 1rem; }
+    section { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: center; }
+    input[type="text"], input[type="number"] { width: 4rem; }
+    button { padding: 0.4rem 0.8rem; margin: 0.2rem; border: none; background: #3498db; color: white; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #2980b9; }
+    form { margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <select id="page-select">
+      <option value="index.html">Team Generator</option>
+      <option value="players.html">Manage Players</option>
+      <option value="results.html">Previous Results</option>
+    </select>
+  </nav>
+
+  <section id="player-management">
+    <h2>Manage Players</h2>
+    <form id="add-player-form">
+      Name: <input type="text" id="p-name" required>
+      Attack: <input type="number" id="p-atk" min="0" max="10" value="5" required>
+      Mid: <input type="number" id="p-mid" min="0" max="10" value="5" required>
+      Defence: <input type="number" id="p-def" min="0" max="10" value="5" required>
+      <button type="submit">Add Player</button>
+    </form>
+    <table id="player-table">
+      <thead><tr><th>Name</th><th>Atk</th><th>Mid</th><th>Def</th><th>Delete</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <script>
+    const STORAGE_PLAYERS = 'football_players';
+    let players = JSON.parse(localStorage.getItem(STORAGE_PLAYERS) || '[]');
+    function savePlayers() { localStorage.setItem(STORAGE_PLAYERS, JSON.stringify(players)); }
+    function renderPlayers() {
+      const tbody = document.querySelector('#player-table tbody');
+      tbody.innerHTML = '';
+      players.forEach((p,i) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${p.name}</td><td>${p.atk}</td><td>${p.mid}</td><td>${p.def}</td>
+          <td><button data-i="${i}" class="del-player">❌</button></td>`;
+        tbody.append(row);
+      });
+    }
+    document.getElementById('add-player-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('p-name').value.trim();
+      const atk = +document.getElementById('p-atk').value;
+      const mid = +document.getElementById('p-mid').value;
+      const def = +document.getElementById('p-def').value;
+      if (!name) return;
+      players.push({ name, atk, mid, def });
+      savePlayers();
+      renderPlayers();
+      e.target.reset();
+    });
+    document.querySelector('#player-table').addEventListener('click', e => {
+      if (e.target.classList.contains('del-player')) {
+        const i = +e.target.dataset.i;
+        players.splice(i,1);
+        savePlayers();
+        renderPlayers();
+      }
+    });
+    document.getElementById('page-select').value = 'players.html';
+    document.getElementById('page-select').addEventListener('change', function() {
+      window.location.href = this.value;
+    });
+    renderPlayers();
+  </script>
+</body>
+</html>
