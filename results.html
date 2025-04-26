@@ -1,4 +1,3 @@
-
 <!-- results.html -->
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +10,9 @@
     select { padding: 0.4rem; font-size: 1rem; }
     section { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; }
     ul { list-style: none; padding: 0; }
-    ul li { margin-bottom: 1rem; }
+    li { margin-bottom: 1rem; background: #ecf0f1; padding: 0.5rem; border-radius: 4px; }
+    button { margin-right: 0.5rem; padding: 0.3rem 0.6rem; border: none; background: #3498db; color: white; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #2980b9; }
   </style>
 </head>
 <body>
@@ -31,20 +32,55 @@
   <script>
     const STORAGE_LOGS = 'football_logs';
     let logs = JSON.parse(localStorage.getItem(STORAGE_LOGS) || '[]');
+
     function renderLogs() {
-      const ul = document.getElementById('log-list'); ul.innerHTML = '';
-      logs.slice().reverse().forEach(log => {
+      const ul = document.getElementById('log-list');
+      ul.innerHTML = '';
+
+      logs.slice().reverse().forEach((log, revIndex) => {
+        const realIndex = logs.length - 1 - revIndex;
         const li = document.createElement('li');
         const date = new Date(log.date).toLocaleString();
-        li.innerHTML = `<strong>${date}</strong><br>
-          A [${log.teamA.join(', ')}] ${log.scoreA}–${log.scoreB} [${log.teamB.join(', ')}] B`;
+        li.innerHTML = `
+          <strong>${date}</strong><br>
+          A [${log.teamA.join(', ')}] ${log.scoreA}–${log.scoreB} [${log.teamB.join(', ')}]<br>
+          <button class="edit-log" data-idx="${realIndex}">Edit</button>
+          <button class="delete-log" data-idx="${realIndex}">Delete</button>
+        `;
         ul.append(li);
       });
+
+      document.querySelectorAll('.edit-log').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = +e.target.dataset.idx;
+          const newA = prompt('New Team A score:', logs[idx].scoreA);
+          const newB = prompt('New Team B score:', logs[idx].scoreB);
+          if (newA !== null && newB !== null) {
+            logs[idx].scoreA = Number(newA);
+            logs[idx].scoreB = Number(newB);
+            localStorage.setItem(STORAGE_LOGS, JSON.stringify(logs));
+            renderLogs();
+          }
+        });
+      });
+
+      document.querySelectorAll('.delete-log').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = +e.target.dataset.idx;
+          if (confirm('Delete this log?')) {
+            logs.splice(idx, 1);
+            localStorage.setItem(STORAGE_LOGS, JSON.stringify(logs));
+            renderLogs();
+          }
+        });
+      });
     }
+
     document.getElementById('page-select').value = 'results.html';
     document.getElementById('page-select').addEventListener('change', function() {
       window.location.href = this.value;
     });
+
     renderLogs();
   </script>
 </body>
